@@ -131,7 +131,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}
 .toggle input:checked::after{transform:translateX(16px)}
 .toggle b{display:block;font-weight:600;font-size:14px}
 .toggle span{font-size:13px;color:var(--ink-soft)}
-.options{display:flex;flex-direction:column;gap:10px}
+.chain-note{padding:10px 12px;border-radius:10px;background:var(--surface-2);border:1px dashed var(--line)}
 .groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
 .zone{border-radius:12px;padding:10px;min-height:64px;display:flex;flex-direction:column;gap:8px;transition:background .15s,border-color .15s,transform .15s;min-width:0}
 .zone.tray{grid-column:1/-1;background:var(--surface-2);border:1.5px solid var(--line)}
@@ -334,17 +334,13 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
             <div class="groups" id="groups"></div>
           </div>
 
-          <div class="options">
-            <span class="label">Options</span>
-            <label class="toggle" for="noSwap">
-              <input type="checkbox" id="noSwap">
-              <div><b>Pas d’échange réciproque</b><span>Si Léa offre à Hugo, Hugo n’offre pas à Léa.</span></div>
-            </label>
-            <label class="toggle" for="loop">
-              <input type="checkbox" id="loop">
-              <div><b>Une seule chaîne</b><span>Les cadeaux passent de l’un à l’autre jusqu’à revenir au premier : Léa → Hugo → Camille → Jules → Léa. Sans cette option, il peut se former plusieurs petits cercles séparés (Léa → Hugo → Léa et Camille → Jules → Camille).</span></div>
-            </label>
+          <div class="field">
+            <label class="label" for="note">Mot de l’organisateur</label>
+            <textarea class="input" id="note" rows="2" maxlength="200" placeholder="ex. Échange le 24 au soir chez Mamie. Cadeau fait main bienvenu !" style="min-height:64px"></textarea>
+            <p class="hint">Affiché à chacun en ouvrant son paquet, et dans les messages copiés.</p>
           </div>
+
+          <p class="hint chain-note">Le tirage forme toujours <b>une seule chaîne</b> : chacun offre au suivant jusqu’à revenir au premier (Léa → Hugo → Camille → Jules → Léa). Personne n’échange de cadeau en vase clos.</p>
         </div>
       </section>
 
@@ -354,7 +350,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
           <h2 id="h-saved">Mes listes</h2>
           <span class="count">sur cet appareil</span>
         </div>
-        <p class="hint" style="margin-bottom:12px">Enregistrez la liste (prénoms, groupes, budget, options) et le tirage s’il a été fait, pour les retrouver plus tard.</p>
+        <p class="hint" style="margin-bottom:12px">Enregistrez la liste (prénoms, groupes, budget, mot de l’organisateur) et le tirage s’il a été fait, pour les retrouver plus tard.</p>
         <form id="saveForm" class="row" autocomplete="off">
           <div class="field grow">
             <label class="label" for="listName">Nom de la liste</label>
@@ -416,7 +412,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
   const $ = s => document.querySelector(s);
   const KEY = "pns-state-v2", LISTS = "pns-lists-v1";
 
-  let state = load() || { people:[], groups:[], budget:"", loop:false, noSwap:false, result:null, seen:{} };
+  let state = load() || { people:[], groups:[], budget:"", note:"", result:null, seen:{} };
   if(!Array.isArray(state.groups)) state.groups=[];
   delete state.excl;
   let selected = null;           // prénom sélectionné au toucher (alternative au glisser)
@@ -504,8 +500,8 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
   $("#budget").addEventListener("input", e=>{ state.budget=e.target.value; save(); renderTicket() });
   $("#budget").addEventListener("change", e=>{ state.budget=fmtBudget(e.target.value); e.target.value=state.budget; save(); renderTicket() });
   // La chaîne unique exclut d’office les échanges réciproques (dès 3 personnes)
-  $("#loop").addEventListener("change", e=>{ state.loop=e.target.checked; if(state.loop) state.noSwap=true; invalidate(); render() });
-  $("#noSwap").addEventListener("change", e=>{ state.noSwap=e.target.checked; if(!state.noSwap) state.loop=false; invalidate(); render() });
+  $("#note").addEventListener("input", e=>{ state.note=e.target.value; save() });
+  $("#note").addEventListener("change", e=>{ state.note=norm(e.target.value); e.target.value=state.note; save() });
   /* ---------- Groupes (glisser-déposer) ---------- */
   const groupOf = n => state.groups.findIndex(g=>g.includes(n));
   function moveTo(name, zone){ // zone : "free" | "new" | index de groupe
@@ -614,7 +610,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     if(!name){ $("#saveErr").textContent="Donnez un nom à la liste avant de l’enregistrer."; return }
     if(!state.people.length){ $("#saveErr").textContent="La liste est vide : ajoutez d’abord des participants."; return }
     const lists=getLists().filter(l=>key(l.name)!==key(name));
-    lists.unshift({name, people:state.people.slice(), groups:state.groups.map(g=>g.slice()), budget:fmtBudget(state.budget), loop:state.loop, noSwap:state.noSwap,
+    lists.unshift({name, people:state.people.slice(), groups:state.groups.map(g=>g.slice()), budget:fmtBudget(state.budget), note:state.note||"",
       result:state.result?{...state.result}:null, seen:{...(state.seen||{})}, savedAt:Date.now()});
     if(!setLists(lists)){ $("#saveErr").textContent="Ce navigateur bloque l’enregistrement (navigation privée ?). Utilisez « Copier les prénoms en texte »."; return }
     $("#saveErr").textContent=""; $("#listName").value=""; toast(`Liste « ${name} » enregistrée`); renderSaved();
@@ -634,7 +630,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
         el("div",{class:"acts"},
           el("button",{class:"btn small",type:"button",text:"Ouvrir",onclick:()=>{
             snap(`ouverture de « ${l.name} »`);
-            state.people=l.people.slice(); state.groups=(l.groups||[]).map(g=>g.filter(p=>l.people.includes(p))).filter(g=>g.length); state.budget=l.budget||""; state.loop=!!l.loop; state.noSwap=!!l.noSwap;
+            state.people=l.people.slice(); state.groups=(l.groups||[]).map(g=>g.filter(p=>l.people.includes(p))).filter(g=>g.length); state.budget=l.budget||""; state.note=l.note||"";
             selected=null; state.result=l.result?{...l.result}:null; state.seen={...(l.seen||{})}; save(); render(); toast(l.result?`« ${l.name} » ouverte, avec son tirage`:`Liste « ${l.name} » ouverte`) }}),
           el("button",{class:"btn small "+(arm?"holly":"ghost"),type:"button",text:arm?"Confirmer":"Supprimer",onclick:()=>{
             if(!arm){ delArmed=l.name; renderSaved(); return }
@@ -653,7 +649,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     const P=state.people.slice(), n=P.length, F=forbidden();
     const ok=(a,b)=>a!==b && !F.has(a+">"+b);
     if(n<3) return {error:"Il faut au moins 3 participants pour un tirage surprise."};
-    if(state.loop){
+    {
       // Cycle hamiltonien aléatoire par retour arrière
       const order=shuffle(P.slice()); const start=order[0];
       const path=[start], used=new Set([start]); let steps=0;
@@ -668,26 +664,9 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
         }
         return false;
       };
-      if(!rec()) return {error:"Impossible de former une seule chaîne avec ces groupes. Réduisez un groupe ou désactivez « Une seule chaîne »."};
+      if(!rec()) return {error:"Impossible de former une seule chaîne avec ces groupes. Réduisez un groupe ou ajoutez des participants."};
       const m={}; path.forEach((p,i)=>m[p]=path[(i+1)%n]); return {map:m};
     }
-    // Attribution libre avec contraintes : retour arrière, les plus contraints d’abord
-    const givers=shuffle(P.slice()).sort((a,b)=>P.filter(p=>ok(a,p)).length-P.filter(p=>ok(b,p)).length);
-    const m={}, taken=new Set(); let steps=0;
-    const rec=i=>{
-      if(++steps>200000) return false;
-      if(i===n) return true;
-      const g=givers[i];
-      for(const r of shuffle(P.filter(p=>!taken.has(p)&&ok(g,p)))){
-        if(state.noSwap && m[r]===g) continue;
-        m[g]=r; taken.add(r);
-        if(rec(i+1)) return true;
-        delete m[g]; taken.delete(r);
-      }
-      return false;
-    };
-    if(!rec(0)) return {error:"Aucun tirage possible avec ces groupes : un groupe est trop grand par rapport aux autres. Réduisez-le ou ajoutez des participants."};
-    return {map:m};
   }
 
   /* ---------- Tirage ---------- */
@@ -736,6 +715,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
   function message(g){
     const r=state.result[g]; let s=`Salut ${g} ! Pour le Père Noël surprise, tu offres un cadeau à ${r}.`;
     if(state.budget) s+=` Budget : ${fmtBudget(state.budget)}.`;
+    if(state.note) s+=` ${state.note}`;
     return s+" Garde le secret !";
   }
   async function copy(text, node, ok="Message copié"){
@@ -810,7 +790,8 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
       const card=el("div",{class:"card"},
         el("div",{class:"to",text:`De la part de ${g} · pour`}),
         el("div",{class:"who",text:r}),
-        meta.childNodes.length?meta:null
+        meta.childNodes.length?meta:null,
+        state.note?el("div",{class:"note",text:state.note}):null
       );
       sheet.append(el("div",{class:"eyebrow",style:"margin-bottom:12px",text:"Tu offres un cadeau à"}), card,
         el("p",{text:"Mémorise bien ce prénom, puis cache-le avant de passer le téléphone."}),
@@ -838,7 +819,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     renderGroups();
 
     $("#budget").value=state.budget||"";
-    $("#loop").checked=!!state.loop; $("#noSwap").checked=!!state.noSwap;
+    if(document.activeElement!==$("#note")) $("#note").value=state.note||"";
 
     // tirage
     const has=!!state.result;
@@ -855,7 +836,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     }
     $("#drawStatus").textContent="";
     $("#drumTitle").textContent="Les paires sont scellées.";
-    $("#reel").textContent= state.loop ? "Une seule chaîne" : "C’est tiré !";
+    $("#reel").textContent="C’est tiré !";
     $("#drumText").textContent="Chacun touche son étiquette ci-dessous et maintient le bouton pour ouvrir son paquet.";
     const tags=$("#tags"); tags.innerHTML="";
     const seen=state.seen||{}; let n=0;

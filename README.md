@@ -7,10 +7,11 @@ Tirage au sort pour un Père Noël surprise (Secret Santa), en appli Android.
 - **Participants** : ajout un par un, ou collage d'une liste entière (un prénom par ligne ou séparés par des virgules). Les doublons sont signalés.
 - **Budget** facultatif : « 25 » s'affiche « 25 € ».
 - **Groupes** : glissez les prénoms dans des groupes ; les membres d'un même groupe ne se tirent pas entre eux (couples, familles). Fonctionne au doigt comme à la souris, ou en touchant un prénom puis un groupe. Bouton **Annuler** (ou Ctrl+Z) pour revenir en arrière.
-- **Options** : pas d’échange réciproque ; une seule chaîne (Léa → Hugo → Camille → Jules → Léa) au lieu de plusieurs petits cercles.
+- **Une seule chaîne** : le tirage relie toujours tout le monde, chacun offrant au suivant jusqu’à revenir au premier (Léa → Hugo → Camille → Jules → Léa).
+- **Mot de l’organisateur** : un message affiché à chacun en ouvrant son paquet et dans les messages copiés.
 - **Tirage** : personne ne voit les paires. On se passe le téléphone : chacun touche son étiquette, confirme son prénom et maintient le bouton pour ouvrir son paquet.
 - **Mode organisateur** : afficher toutes les paires (après confirmation) et copier un message prêt à envoyer à chacun.
-- **Mes listes** : l’organisateur enregistre ses listes (prénoms, groupes, budget, options) et le tirage, pour les retrouver plus tard. Elles restent sur le téléphone.
+- **Mes listes** : l’organisateur enregistre ses listes (prénoms, groupes, budget, mot de l’organisateur) et le tirage, pour les retrouver plus tard. Elles restent sur le téléphone.
 
 Tout est calculé sur l'appareil : rien n'est envoyé sur Internet, et l'appli fonctionne hors ligne.
 
