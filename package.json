@@ -1,0 +1,16 @@
+{
+  "name": "pere-noel-surprise",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tirage au sort du Père Noël surprise, en appli Android.",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}
