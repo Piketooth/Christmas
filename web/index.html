@@ -342,7 +342,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
             </label>
             <label class="toggle" for="loop">
               <input type="checkbox" id="loop">
-              <div><b>Une seule grande boucle</b><span>A offre à B, B à C… jusqu’au dernier, qui offre à A.</span></div>
+              <div><b>Une seule chaîne</b><span>Les cadeaux passent de l’un à l’autre jusqu’à revenir au premier : Léa → Hugo → Camille → Jules → Léa. Sans cette option, il peut se former plusieurs petits cercles séparés (Léa → Hugo → Léa et Camille → Jules → Camille).</span></div>
             </label>
           </div>
         </div>
@@ -354,7 +354,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
           <h2 id="h-saved">Mes listes</h2>
           <span class="count">sur cet appareil</span>
         </div>
-        <p class="hint" style="margin-bottom:12px">Enregistrez la liste (prénoms, groupes, budget, options) pour la retrouver l’an prochain.</p>
+        <p class="hint" style="margin-bottom:12px">Enregistrez la liste (prénoms, groupes, budget, options) et le tirage s’il a été fait, pour les retrouver plus tard.</p>
         <form id="saveForm" class="row" autocomplete="off">
           <div class="field grow">
             <label class="label" for="listName">Nom de la liste</label>
@@ -397,6 +397,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
           <div class="row" style="margin-top:20px">
             <button class="btn ghost small" id="showAllBtn" type="button">Voir toutes les paires</button>
             <button class="btn ghost small" id="redrawBtn" type="button">Refaire le tirage</button>
+            <button class="btn ghost small" id="saveDrawBtn" type="button">Enregistrer le tirage</button>
           </div>
           <div id="confirmBox"></div>
           <div class="reveal-all" id="allBox" hidden></div>
@@ -405,7 +406,6 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     </div>
   </main>
 
-  <footer>Tirage aléatoire calculé dans votre navigateur · rien n’est envoyé</footer>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -503,7 +503,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
   }
   $("#budget").addEventListener("input", e=>{ state.budget=e.target.value; save(); renderTicket() });
   $("#budget").addEventListener("change", e=>{ state.budget=fmtBudget(e.target.value); e.target.value=state.budget; save(); renderTicket() });
-  // La grande boucle exclut d’office les échanges réciproques (dès 3 personnes)
+  // La chaîne unique exclut d’office les échanges réciproques (dès 3 personnes)
   $("#loop").addEventListener("change", e=>{ state.loop=e.target.checked; if(state.loop) state.noSwap=true; invalidate(); render() });
   $("#noSwap").addEventListener("change", e=>{ state.noSwap=e.target.checked; if(!state.noSwap) state.loop=false; invalidate(); render() });
   /* ---------- Groupes (glisser-déposer) ---------- */
@@ -614,7 +614,8 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     if(!name){ $("#saveErr").textContent="Donnez un nom à la liste avant de l’enregistrer."; return }
     if(!state.people.length){ $("#saveErr").textContent="La liste est vide : ajoutez d’abord des participants."; return }
     const lists=getLists().filter(l=>key(l.name)!==key(name));
-    lists.unshift({name, people:state.people.slice(), groups:state.groups.map(g=>g.slice()), budget:fmtBudget(state.budget), loop:state.loop, noSwap:state.noSwap, savedAt:Date.now()});
+    lists.unshift({name, people:state.people.slice(), groups:state.groups.map(g=>g.slice()), budget:fmtBudget(state.budget), loop:state.loop, noSwap:state.noSwap,
+      result:state.result?{...state.result}:null, seen:{...(state.seen||{})}, savedAt:Date.now()});
     if(!setLists(lists)){ $("#saveErr").textContent="Ce navigateur bloque l’enregistrement (navigation privée ?). Utilisez « Copier les prénoms en texte »."; return }
     $("#saveErr").textContent=""; $("#listName").value=""; toast(`Liste « ${name} » enregistrée`); renderSaved();
   });
@@ -629,12 +630,12 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
       box.append(el("div",{class:"saved-item"},
         el("div",{style:"display:flex;flex-direction:column;min-width:0"},
           el("span",{class:"nm",text:l.name}),
-          el("span",{class:"meta",text:`${plural(l.people.length,"personne")} · ${d}`})),
+          el("span",{class:"meta",text:`${plural(l.people.length,"personne")} · ${d}${l.result?" · tirage enregistré":""}`})),
         el("div",{class:"acts"},
           el("button",{class:"btn small",type:"button",text:"Ouvrir",onclick:()=>{
             snap(`ouverture de « ${l.name} »`);
             state.people=l.people.slice(); state.groups=(l.groups||[]).map(g=>g.filter(p=>l.people.includes(p))).filter(g=>g.length); state.budget=l.budget||""; state.loop=!!l.loop; state.noSwap=!!l.noSwap;
-            selected=null; state.result=null; state.seen={}; save(); render(); toast(`Liste « ${l.name} » ouverte`) }}),
+            selected=null; state.result=l.result?{...l.result}:null; state.seen={...(l.seen||{})}; save(); render(); toast(l.result?`« ${l.name} » ouverte, avec son tirage`:`Liste « ${l.name} » ouverte`) }}),
           el("button",{class:"btn small "+(arm?"holly":"ghost"),type:"button",text:arm?"Confirmer":"Supprimer",onclick:()=>{
             if(!arm){ delArmed=l.name; renderSaved(); return }
             setLists(getLists().filter(x=>x.name!==l.name)); delArmed=null; renderSaved(); toast("Liste supprimée") }})
@@ -667,7 +668,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
         }
         return false;
       };
-      if(!rec()) return {error:"Impossible de former une seule boucle avec ces groupes. Réduisez un groupe ou désactivez la grande boucle."};
+      if(!rec()) return {error:"Impossible de former une seule chaîne avec ces groupes. Réduisez un groupe ou désactivez « Une seule chaîne »."};
       const m={}; path.forEach((p,i)=>m[p]=path[(i+1)%n]); return {map:m};
     }
     // Attribution libre avec contraintes : retour arrière, les plus contraints d’abord
@@ -713,6 +714,11 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     tick();
   });
   $("#redrawBtn").addEventListener("click", ()=>askConfirm("Refaire le tirage efface les paires actuelles. Ceux qui ont déjà ouvert leur paquet devront recommencer.","Refaire",()=>{ state.result=null; state.seen={}; save(); render(); $("#drawBtn").click() }));
+  $("#saveDrawBtn").addEventListener("click", ()=>{
+    const inp=$("#listName"); inp.scrollIntoView({behavior:"smooth",block:"center"});
+    setTimeout(()=>inp.focus(),300);
+    $("#saveErr").textContent="Donnez un nom (ex. Famille Noël 2026) puis touchez « Enregistrer » : le tirage sera gardé avec la liste.";
+  });
   $("#showAllBtn").addEventListener("click", ()=>{
     if(!$("#allBox").hidden){ $("#allBox").hidden=true; $("#showAllBtn").textContent="Voir toutes les paires"; return }
     askConfirm("Vous allez voir toutes les paires. La surprise sera gâchée pour vous si vous participez.","Afficher",()=>{ renderAll(); $("#allBox").hidden=false; $("#showAllBtn").textContent="Masquer les paires" });
@@ -849,7 +855,7 @@ footer{margin-top:40px;font-size:12px;color:var(--ink-soft);font-family:var(--fo
     }
     $("#drawStatus").textContent="";
     $("#drumTitle").textContent="Les paires sont scellées.";
-    $("#reel").textContent= state.loop ? "Une grande boucle" : "C’est tiré !";
+    $("#reel").textContent= state.loop ? "Une seule chaîne" : "C’est tiré !";
     $("#drumText").textContent="Chacun touche son étiquette ci-dessous et maintient le bouton pour ouvrir son paquet.";
     const tags=$("#tags"); tags.innerHTML="";
     const seen=state.seen||{}; let n=0;
